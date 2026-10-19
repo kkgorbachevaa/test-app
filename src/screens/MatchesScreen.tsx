@@ -2,6 +2,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import type { Match, MatchesResponse } from "../types";
 import { MATCHES_URL } from "../config";
+import { useFavorites } from "../hooks/useFavorites";
+import { FavoriteButton } from "../components/FavoriteButton";
 
 // Доступные варианты фильтра
 type MatchFilter = "all" | "scheduled" | "finished";
@@ -50,6 +52,9 @@ export function MatchesScreen() {
 
   // По умолчанию показываем все матчи
   const [filter, setFilter] = useState<MatchFilter>("all");
+
+  // Один список избранного для всех карточек на экране
+  const { isFavorite, toggle } = useFavorites();
 
   // Загружаем матчи и обновляем состояние экрана
   const loadMatches = useCallback(async () => {
@@ -170,6 +175,12 @@ export function MatchesScreen() {
               >
                 {statusLabels[item.status]}
               </Text>
+
+              {/* Звездочка показывает выбор и переключает его при нажатии */}
+              <FavoriteButton
+                active={isFavorite(item.id)}
+                onPress={() => toggle(item.id)}
+              />
             </View>
           )}
         />
