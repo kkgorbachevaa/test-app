@@ -4,6 +4,7 @@ import type { Match, MatchesResponse } from "../types";
 import { MATCHES_URL } from "../config";
 import { useFavorites } from "../hooks/useFavorites";
 import { FavoriteButton } from "../components/FavoriteButton";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 
 // Доступные варианты фильтра
 type MatchFilter = "all" | "scheduled" | "finished";
@@ -53,6 +54,9 @@ export function MatchesScreen() {
   // По умолчанию показываем все матчи
   const [filter, setFilter] = useState<MatchFilter>("all");
 
+  // Время последней успешной загрузки. До первого ответа его еще нет
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+
   // Один список избранного для всех карточек на экране
   const { isFavorite, toggle } = useFavorites();
 
@@ -71,6 +75,7 @@ export function MatchesScreen() {
 
       const data: MatchesResponse = await response.json();
       setMatches(data.matches);
+      setUpdatedAt(new Date());
     } catch {
       // Показываем сообщение при ошибке запроса или чтения JSON
       setError("Не удалось загрузить матчи. Попробуйте еще раз.");
@@ -97,6 +102,20 @@ export function MatchesScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Матчи тура</Text>
+
+      {/* Показываем время только после первой успешной загрузки */}
+      {updatedAt !== null && <UpdatedAgo since={updatedAt} />}
+
+      {/* Повторно загружаем матчи. Во время запроса кнопка недоступна. */}
+      <Pressable
+        onPress={loadMatches}
+        disabled={isLoading}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isLoading }}
+        style={[styles.refreshButton, isLoading && styles.disabledButton]}
+      >
+        <Text>{isLoading ? "Загружаем..." : "Обновить"}</Text>
+      </Pressable>
 
       {/* Переключаем категорию отображаемых матчей. */}
       <View style={styles.filters}>
@@ -228,5 +247,16 @@ const styles = StyleSheet.create({
   },
   activeFilter: {
     backgroundColor: "#bfdbfe",
+  },
+  refreshButton: {
+    alignSelf: "flex-start",
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#e5e7eb",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
