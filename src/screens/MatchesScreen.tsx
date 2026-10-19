@@ -3,6 +3,9 @@ import { useState, useEffect, useCallback } from "react";
 import type { Match, MatchesResponse } from "../types";
 import { MATCHES_URL } from "../config";
 
+// Доступные варианты фильтра
+type MatchFilter = "all" | "scheduled" | "finished";
+
 // Русские названия статусов из ответа сервера
 const statusLabels = {
   scheduled: "Предстоящий",
@@ -45,6 +48,9 @@ export function MatchesScreen() {
   // Текст ошибки для пользователя, null - ошибки нет
   const [error, setError] = useState<string | null>(null);
 
+  // По умолчанию показываем все матчи
+  const [filter, setFilter] = useState<MatchFilter>("all");
+
   // Загружаем матчи и обновляем состояние экрана
   const loadMatches = useCallback(async () => {
     setIsLoading(true);
@@ -74,9 +80,54 @@ export function MatchesScreen() {
     loadMatches();
   }, [loadMatches]);
 
+  // Отбираем матчи для выбранного фильтра
+  const filteredMatches = matches.filter((match) => {
+    if (filter === "all") {
+      return true;
+    }
+
+    return match.status === filter;
+  });
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Матчи тура</Text>
+
+      {/* Переключаем категорию отображаемых матчей. */}
+      <View style={styles.filters}>
+        <Pressable
+          onPress={() => setFilter("all")}
+          style={[styles.filterButton, filter === "all" && styles.activeFilter]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === "all" }}
+        >
+          <Text>Все</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setFilter("scheduled")}
+          style={[
+            styles.filterButton,
+            filter === "scheduled" && styles.activeFilter,
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === "scheduled" }}
+        >
+          <Text>Предстоящие</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setFilter("finished")}
+          style={[
+            styles.filterButton,
+            filter === "finished" && styles.activeFilter,
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === "finished" }}
+        >
+          <Text>Завершенные</Text>
+        </Pressable>
+      </View>
 
       {/* Показываем загрузку, пока выполняется запрос */}
       {isLoading && <Text>Загружаем матчи...</Text>}
@@ -92,14 +143,14 @@ export function MatchesScreen() {
       )}
 
       {/* Пустой список показываем только после успешной загрузки */}
-      {!isLoading && error === null && matches.length === 0 && (
-        <Text>Матчей пока нет.</Text>
+      {!isLoading && error === null && filteredMatches.length === 0 && (
+        <Text>Нет матчей для выбранного фильтра.</Text>
       )}
 
       {/* Показываем матчи после успешной загрузки */}
-      {!isLoading && error === null && matches.length > 0 && (
+      {!isLoading && error === null && filteredMatches.length > 0 && (
         <FlatList
-          data={matches}
+          data={filteredMatches}
           keyExtractor={(match) => match.id}
           renderItem={({ item }) => (
             <View style={styles.card}>
@@ -151,5 +202,20 @@ const styles = StyleSheet.create({
   status: {
     marginTop: 6,
     fontWeight: "600",
+  },
+  filters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginVertical: 16,
+  },
+  filterButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  activeFilter: {
+    backgroundColor: "#bfdbfe",
   },
 });
